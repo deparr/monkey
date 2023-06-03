@@ -1,3 +1,5 @@
+mod lexer;
+
 fn main() {
-    println!("Hello, world!");
+    let _lexer = lexer::lexer::Lexer::new("some token".into());
 }
