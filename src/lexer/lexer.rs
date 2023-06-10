@@ -2,23 +2,39 @@ use anyhow::Result;
 use std::str;
 
 #[derive(Debug, PartialEq)]
-enum Token {
+pub enum Token {
     Illegal,
     Eof(String),
 
     Ident(String),
-    Int(isize),
+    Number(String),
 
+    Let,
     Function,
+    Return,
+    If,
+    Else,
+    True,
+    False,
+
     Assign,
     Plus,
+    Minus,
+    Asterisk,
+    Slash,
+    Bang,
+
+    Equal,
+    NotEqual,
+    LessThan,
+    GreaterThan,
+
     Comma,
     Semicolon,
     Lparen,
     Rparen,
     Lsquirly,
     Rsquirly,
-    Let,
 }
 
 #[derive(Debug)]
@@ -42,21 +58,49 @@ impl Lexer {
         return lexer;
     }
 
-    fn next_token(&mut self) -> Token {
+    pub fn next_token(&mut self) -> Token {
+
         self.skip_whitespace();
 
         let mut is_multi = false;
         let token = match self.ch {
-            b'=' => Token::Assign,
+            b'=' => {
+                if self.peek() == b'=' {
+                    self.read_char();
+                    Token::Equal
+                } else {
+                    Token::Assign
+                }
+            },
+            b'+' => Token::Plus,
+            b'-' => Token::Minus,
+            b'/' => Token::Slash,
+            b'*' => Token::Asterisk,
+
+            b'!' => {
+                if self.peek() == b'=' {
+                    self.read_char();
+                    Token::NotEqual
+                } else {
+                    Token::Bang
+                }
+            },
+            b'<' => Token::LessThan,
+            b'>' => Token::GreaterThan,
             b';' => Token::Semicolon,
             b'(' => Token::Lparen,
             b')' => Token::Rparen,
             b',' => Token::Comma,
-            b'+' => Token::Plus,
             b'{' => Token::Lsquirly,
             b'}' => Token::Rsquirly,
-            b'A'..=b'Z' | b'a'..=b'z' => { is_multi = true; self.read_ident() },
-            b'0'..=b'9' => { is_multi = true; self.read_number() },
+            b'A'..=b'Z' | b'a'..=b'z' => {
+                is_multi = true;
+                self.read_ident()
+            },
+            b'0'..=b'9' => {
+                is_multi = true;
+                self.read_number()
+            },
             b'\0' => Token::Eof("".into()),
             _ => Token::Illegal,
         };
@@ -80,27 +124,43 @@ impl Lexer {
     }
 
     fn read_ident(&mut self) -> Token {
-        let cur_position = self.position;
+        let pos = self.position;
         while self.ch.is_ascii_alphabetic() || self.ch == b'_' {
             self.read_char();
         }
 
-        let ident = str::from_utf8(&self.input[cur_position..self.position]).unwrap();
+        let ident = str::from_utf8(&self.input[pos..self.position]).unwrap();
         return match ident {
-            "fn" => Token::Function,
             "let" => Token::Let,
+            "fn" => Token::Function,
+            "return" => Token::Return,
+            "if" => Token::If,
+            "else" => Token::Else,
+            "true" => Token::True,
+            "false" => Token::False,
             _ => Token::Ident(ident.into()),
-
-        }
+        };
     }
 
-    fn read_number(&mut self) {
-        let mut cur_position = self.position;
+    fn read_number(&mut self) -> Token {
+        //let mut digits = vec![];
+        let pos = self.position;
         while self.ch.is_ascii_digit() {
+            //digits.push(self.ch & 0x0f);
             self.read_char();
         }
 
+        let number = str::from_utf8(&self.input[pos..self.position]).unwrap();
 
+        return Token::Number(number.into());
+    }
+
+    fn peek(&self) -> u8 {
+        if self.read_position >= self.input.len() {
+            return 0;
+        }
+
+        return self.input[self.read_position];
     }
 
     fn skip_whitespace(&mut self) {
@@ -120,15 +180,23 @@ mod test {
 
     #[test]
     fn test_next_token() -> Result<()> {
-        let input = "=+(){},;";
+        let input = "(){}=+-/*!!===<>,;";
 
         let expected = vec![
-            Token::Assign,
-            Token::Plus,
             Token::Lparen,
             Token::Rparen,
             Token::Lsquirly,
             Token::Rsquirly,
+            Token::Assign,
+            Token::Plus,
+            Token::Minus,
+            Token::Slash,
+            Token::Asterisk,
+            Token::Bang,
+            Token::NotEqual,
+            Token::Equal,
+            Token::LessThan,
+            Token::GreaterThan,
             Token::Comma,
             Token::Semicolon,
             Token::Eof("".into()),
@@ -154,19 +222,26 @@ let add = fn(x, y) {
     x + y;
 };
 
-let result = add(five + ten);
-"#;
+let result = add(five, ten);
+
+if (5 < 10) {
+    return true;
+} else {
+    return false;
+}"#;
+
+        println!{"input\n{}", input};
 
         let expected = vec![
             Token::Let,
             Token::Ident("five".into()),
             Token::Assign,
-            Token::Int(5),
+            Token::Number("5".into()),
             Token::Semicolon,
             Token::Let,
             Token::Ident("ten".into()),
             Token::Assign,
-            Token::Int(10),
+            Token::Number("10".into()),
             Token::Semicolon,
             Token::Let,
             Token::Ident("add".into()),
@@ -190,11 +265,27 @@ let result = add(five + ten);
             Token::Ident("add".into()),
             Token::Lparen,
             Token::Ident("five".into()),
-            Token::Plus,
+            Token::Comma,
             Token::Ident("ten".into()),
+            Token::Rparen,
+            Token::Semicolon,
+            Token::If,
+            Token::Lparen,
+            Token::Number("5".into()),
+            Token::LessThan,
+            Token::Number("10".into()),
+            Token::Rparen,
+            Token::Lsquirly,
+            Token::Return,
+            Token::True,
             Token::Semicolon,
             Token::Rsquirly,
+            Token::Else,
+            Token::Lsquirly,
+            Token::Return,
+            Token::False,
             Token::Semicolon,
+            Token::Rsquirly,
             Token::Eof("".into()),
         ];
 
