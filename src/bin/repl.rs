@@ -1,5 +1,6 @@
 use std::io;
-use ::lexer::lexer::{Lexer, Token};
+
+use monkey::lexer::lexer::{Token, Lexer};
 
 fn main() -> anyhow::Result<()> {
     let stdin = io::stdin();
@@ -7,14 +8,15 @@ fn main() -> anyhow::Result<()> {
 
     let mut line = String::new();
 
-    while let Ok(_) = io::stdin().read_line(&mut line) {
-        let mut lex = Lexer::new();
-        let mut tok = Token::Eof;
+    while let Ok(_) = stdin.read_line(&mut line) {
+        let mut lex = Lexer::new(line.clone().into());
+        let mut tok = lex.next_token();
         loop {
             println!("tok: {:?}", tok);
-            if tok == Token::Eof {
+            if tok == Token::Eof("".into()) {
                 break;
             }
+            tok = lex.next_token();
         }
     }
 
