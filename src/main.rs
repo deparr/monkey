@@ -1,5 +1,4 @@
-mod lexer;
-mod repl;
+pub mod lexer;
 
 fn main() {
     println!("Hello world!");
