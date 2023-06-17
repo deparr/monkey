@@ -4,21 +4,25 @@ use monkey::lexer::lexer::{Token, Lexer};
 
 fn main() -> anyhow::Result<()> {
     let stdin = io::stdin();
-    println!("Startin repl...");
+    println!("Starting repl, press ^Z or ^D to exit");
 
     let mut line = String::new();
 
     while let Ok(_) = stdin.read_line(&mut line) {
         let mut lex = Lexer::new(line.clone().into());
+        line.clear();
         let mut tok = lex.next_token();
         loop {
-            println!("tok: {:?}", tok);
-            if tok == Token::Eof("".into()) {
+            println!("{}", tok);
+            if tok == Token::Eof {
                 break;
             }
             tok = lex.next_token();
         }
+        println!("");
     }
+
+    println!("Exiting repl");
 
     return Ok(());
 }

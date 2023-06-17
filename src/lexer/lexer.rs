@@ -1,13 +1,13 @@
 
-use std::str;
+use std::{str, fmt::Display};
 
 #[derive(Debug, PartialEq)]
 pub enum Token {
     Illegal,
-    Eof(String),
+    Eof,
 
     Ident(String),
-    Number(String),
+    Int(String),
 
     Let,
     Function,
@@ -35,6 +35,40 @@ pub enum Token {
     Rparen,
     Lsquirly,
     Rsquirly,
+}
+
+impl Display for Token {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        return match self {
+            Token::Ident(id) => write!(f, "Ident(\"{}\")", id),
+            Token::Int(x) => write!(f, "Int(\"{}\")", x),
+            Token::Illegal => write!(f, "Illegal"),
+            Token::Eof => write!(f, "EOF"),
+            Token::Let => write!(f, "Let"),
+            Token::Function => write!(f, "Function"),
+            Token::Return => write!(f, "Return"),
+            Token::If => write!(f, "If"),
+            Token::Else => write!(f, "Else"),
+            Token::True => write!(f, "True"),
+            Token::False => write!(f, "False"),
+            Token::Assign => write!(f, "Assign"),
+            Token::Plus => write!(f, "Plus"),
+            Token::Minus => write!(f, "Minus"),
+            Token::Asterisk => write!(f, "Asterisk"),
+            Token::Slash => write!(f, "Slash"),
+            Token::Bang => write!(f, "Bang"),
+            Token::Equal => write!(f, "Equal"),
+            Token::NotEqual => write!(f, "NotEqual"),
+            Token::LessThan => write!(f, "LessThan"),
+            Token::GreaterThan => write!(f, "GreaterThan"),
+            Token::Comma => write!(f, "Comma"),
+            Token::Semicolon => write!(f, "Semicolon"),
+            Token::Lparen => write!(f, "Lparen"),
+            Token::Rparen => write!(f, "Rparen"),
+            Token::Lsquirly => write!(f, "Lsquirly"),
+            Token::Rsquirly => write!(f, "Rsquirly"),
+        };
+    }
 }
 
 #[derive(Debug)]
@@ -99,9 +133,9 @@ impl Lexer {
             },
             b'0'..=b'9' => {
                 is_multi = true;
-                self.read_number()
+                self.read_int()
             },
-            b'\0' => Token::Eof("".into()),
+            b'\0' => Token::Eof,
             _ => Token::Illegal,
         };
 
@@ -111,6 +145,17 @@ impl Lexer {
 
         return token;
     }
+
+    pub fn tokenize(&mut self) -> Vec<Token> {
+        let mut tokens = vec![];
+        let mut token = self.next_token();
+        while token != Token::Eof {
+            tokens.push(token);
+            token = self.next_token();
+        }
+        return tokens;
+    }
+
 
     fn read_char(&mut self) {
         self.ch = if self.read_position >= self.input.len() {
@@ -142,17 +187,15 @@ impl Lexer {
         };
     }
 
-    fn read_number(&mut self) -> Token {
-        //let mut digits = vec![];
+    fn read_int(&mut self) -> Token {
         let pos = self.position;
         while self.ch.is_ascii_digit() {
-            //digits.push(self.ch & 0x0f);
             self.read_char();
         }
 
         let number = str::from_utf8(&self.input[pos..self.position]).unwrap();
 
-        return Token::Number(number.into());
+        return Token::Int(number.into());
     }
 
     fn peek(&self) -> u8 {
@@ -199,7 +242,7 @@ mod test {
             Token::GreaterThan,
             Token::Comma,
             Token::Semicolon,
-            Token::Eof("".into()),
+            Token::Eof,
         ];
 
         let mut lexer = Lexer::new(input.into());
@@ -236,12 +279,12 @@ if (5 < 10) {
             Token::Let,
             Token::Ident("five".into()),
             Token::Assign,
-            Token::Number("5".into()),
+            Token::Int("5".into()),
             Token::Semicolon,
             Token::Let,
             Token::Ident("ten".into()),
             Token::Assign,
-            Token::Number("10".into()),
+            Token::Int("10".into()),
             Token::Semicolon,
             Token::Let,
             Token::Ident("add".into()),
@@ -271,9 +314,9 @@ if (5 < 10) {
             Token::Semicolon,
             Token::If,
             Token::Lparen,
-            Token::Number("5".into()),
+            Token::Int("5".into()),
             Token::LessThan,
-            Token::Number("10".into()),
+            Token::Int("10".into()),
             Token::Rparen,
             Token::Lsquirly,
             Token::Return,
@@ -286,7 +329,7 @@ if (5 < 10) {
             Token::False,
             Token::Semicolon,
             Token::Rsquirly,
-            Token::Eof("".into()),
+            Token::Eof,
         ];
 
         let mut lexer = Lexer::new(input.into());
