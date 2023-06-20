@@ -8,7 +8,11 @@ fn main() -> anyhow::Result<()> {
 
     let mut line = String::new();
 
-    while let Ok(_) = stdin.read_line(&mut line) {
+    while let Ok(bytes) = stdin.read_line(&mut line) {
+        if bytes < 1 {
+            break;
+        }
+
         let mut lex = Lexer::new(line.clone().into());
         line.clear();
         let mut tok = lex.next_token();
@@ -19,7 +23,7 @@ fn main() -> anyhow::Result<()> {
             }
             tok = lex.next_token();
         }
-        println!("");
+        println!();
     }
 
     println!("Exiting repl");
