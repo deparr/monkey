@@ -1,4 +1,4 @@
-use super::super::lexer::lexer::Token;
+use crate::lexer::lexer::Token;
 
 pub struct AST {
     
